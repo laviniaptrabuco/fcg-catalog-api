@@ -22,13 +22,15 @@ builder.Services.AddScoped<GameService>();
 builder.Services.AddScoped<PurchaseService>();
 
 // MongoDB
-var mongoUri = builder.Configuration.GetConnectionString("MongoDB") ?? "mongodb://admin:admin@localhost:27017";
+var mongoUri = builder.Configuration.GetConnectionString("MongoDB")
+    ?? throw new InvalidOperationException("ConnectionStrings:MongoDB is not configured (injete via Secret).");
 var mongoClient = new MongoClient(mongoUri);
 var mongoDatabase = mongoClient.GetDatabase("fcg_db");
 builder.Services.AddSingleton(mongoDatabase);
 
 // Redis
-var redisConnection = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+var redisConnection = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException("ConnectionStrings:Redis is not configured (injete via Secret).");
 var redis = ConnectionMultiplexer.Connect(redisConnection);
 builder.Services.AddSingleton(redis);
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -67,8 +69,8 @@ builder.Services.AddMassTransit(x =>
     {
         cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
         {
-            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
-            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? throw new InvalidOperationException("RabbitMQ:Username is not configured."));
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? throw new InvalidOperationException("RabbitMQ:Password is not configured."));
         });
         cfg.ConfigureEndpoints(context);
     });

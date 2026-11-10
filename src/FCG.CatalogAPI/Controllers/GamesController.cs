@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FCG.Catalog.Application.DTOs;
 using FCG.Catalog.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,13 +15,40 @@ public class GamesController : ControllerBase
 
     public GamesController(GameService gameService) => _gameService = gameService;
 
+    // X-Cache (HIT = Redis, MISS = banco/Elasticsearch) e X-Elapsed-Ms mostram o ganho do cache.
+    private void AddCacheHeaders(bool hit, Stopwatch sw)
+    {
+        Response.Headers["X-Cache"] = hit ? "HIT" : "MISS";
+        Response.Headers["X-Elapsed-Ms"] = sw.Elapsed.TotalMilliseconds.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<GameResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var games = await _gameService.GetAllAsync(ct);
-        return Ok(games);
+        var sw = Stopwatch.StartNew();
+        var result = await _gameService.GetAllAsync(ct);
+        AddCacheHeaders(result.Hit, sw);
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Busca avançada (Elasticsearch): fuzzy search tolerante a erros de digitação,
+    /// ordenada por relevância. Ex.: /api/games/search?q=wiitcher
+    /// </summary>
+    [HttpGet("search")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(SearchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? q, [FromQuery] string? genre,
+        [FromQuery] int page = 1, [FromQuery] int size = 10, CancellationToken ct = default)
+    {
+        var sw = Stopwatch.StartNew();
+        var result = await _gameService.SearchAsync(q, genre, page, size, ct);
+        AddCacheHeaders(result.Hit, sw);
+        return Ok(result.Value);
     }
 
     [HttpGet("{id:guid}")]
