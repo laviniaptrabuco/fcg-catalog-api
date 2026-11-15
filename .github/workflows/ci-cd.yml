@@ -96,7 +96,7 @@ jobs:
           exit-code: ${{ vars.TRIVY_BLOCK == 'true' && '1' || '0' }}
 
       - name: Login no Azure (OIDC)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -104,7 +104,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Push para o ACR (tags versionadas)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           ACR="${{ vars.ACR_NAME }}"
           az acr login --name "$ACR"
@@ -117,7 +117,7 @@ jobs:
   deploy:
     name: Deploy no AKS (Rolling Update)
     needs: image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
