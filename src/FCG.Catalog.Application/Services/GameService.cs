@@ -60,7 +60,7 @@ public class GameService
         string? query, string? genre, int page, int size, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(query))
-            throw new DomainException("Informe o termo de busca (parametro q) para encontrar jogos.");
+            throw new DomainException("Informe o termo da busca (parametro q) para encontrar jogos.");
         if (page < 1)
             throw new DomainException("Page must be greater than or equal to 1.");
         if (size < 1 || size > MaxPageSize)
